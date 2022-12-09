@@ -35,19 +35,6 @@ public class Main {
         TimerTask timerTask2 = new TimerTask() {
             @Override
             public void run() {
-                List<ReportRequestProperties> notStartedList =  reportQueueOrchestrator.getAllNotStartedReportRequestQueueList();
-                if (!notStartedList.isEmpty()) {
-                    System.out.println("Not started all queue size - list: "
-                            + notStartedList.size() + " - " + notStartedList);
-                } else {
-                    System.out.println("There are no report requests in queue");
-
-                    if(shortReportQueueHandler.getInProgressReportRequestCount() == 0
-                    && longReportQueueHandler.getInProgressReportRequestCount() == 0) {
-                        System.out.println("All simulated jobs are finished");
-                        System.exit(0);
-                    }
-                }
             }
         };
         timer2.scheduleAtFixedRate(timerTask2,10000, 10000);
@@ -95,14 +82,20 @@ public class Main {
         Random randomGenerator = new Random();
         // 30 seconds or less
         long waitInTimeUnits = randomGenerator.nextInt(30) + 1;
-        return new ReportRequestProperties(waitInTimeUnits, true);
+        ReportRequestProperties.ReportType reportType = randomGenerator.nextInt(10) < 5
+                ? ReportRequestProperties.ReportType.OBSERVATION
+                : ReportRequestProperties.ReportType.EVENT;
+        return new ReportRequestProperties(reportType, waitInTimeUnits, true);
     }
 
     private static ReportRequestProperties generateLongReportRequest() {
         Random randomGenerator = new Random();
         // 5 minutes or less
         long waitInTimeUnits = randomGenerator.nextInt(3) + 1;
-        return new ReportRequestProperties(waitInTimeUnits, false);
+        ReportRequestProperties.ReportType reportType = randomGenerator.nextInt(10) < 5
+                ? ReportRequestProperties.ReportType.OBSERVATION
+                : ReportRequestProperties.ReportType.EVENT;
+        return new ReportRequestProperties(reportType, waitInTimeUnits, false);
     }
 
     public static void sendRequestsToCreateReportRequestOrchestrator(List<ReportRequestProperties> reportRequestPropertiesList) {

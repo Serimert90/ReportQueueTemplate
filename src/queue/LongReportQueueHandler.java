@@ -8,9 +8,4 @@ public class LongReportQueueHandler extends AbstractReportQueueHandler {
         super(systemProperties);
     }
 
-    @Override
-    protected boolean haveAvailableThreadForProcessingReportRequest() {
-        return systemProperties.getMaxLongQueueProcessingCount() - currentRunningCount.get() > 0;
-    }
-
 }

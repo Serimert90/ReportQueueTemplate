@@ -35,12 +35,6 @@ public class ReportQueueOrchestrator {
         }
     }
 
-    public List<ReportRequestProperties> getAllNotStartedReportRequestQueueList() {
-        List<ReportRequestProperties> reportRequestPropertiesList = longReportQueueHandler.getNotStartedReportRequestQueueList();
-        reportRequestPropertiesList.addAll(shortReportQueueHandler.getNotStartedReportRequestQueueList());
-        return  reportRequestPropertiesList;
-    }
-
     //this is where we decide whether it is long or short, of course it is sample
     public static boolean isLongReportRequest(ReportRequestProperties reportRequestProperties) {
         return !reportRequestProperties.isWaitTimeInSeconds() || reportRequestProperties.getWaitInTimeUnits() > 30;

@@ -11,8 +11,6 @@ public class ReportQueueProcessScheduler {
     }
 
     public void doCronJob() {
-        //Since their process method starts new thread, this long one will not block short
-        longQueueOrchestrator.processReportRequest();
-        shortQueueOrchestrator.processReportRequest();
+
     }
 }
