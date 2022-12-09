@@ -20,6 +20,8 @@ public class EventReportGenerator extends ReportGenerator {
         DbUtils.doJob(reportRequestProperties.getWaitInTimeUnits(), reportRequestProperties.isWaitTimeInSeconds()); // get data from db for report
         CsvUtils.doCreateCsv(reportRequestProperties.isWaitTimeInSeconds() ? 1 : 5); // create csv
         DbUtils.doJob(1, true); // update report request completed progress
+
+        LogUtils.log("EventReportGenerator Finished processing: " + reportRequestProperties);
     }
 
 }

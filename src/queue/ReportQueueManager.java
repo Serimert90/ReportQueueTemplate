@@ -5,13 +5,13 @@ import definition.ReportRequestProperties;
 import java.util.ArrayList;
 import java.util.List;
 
-// This class determines whether long and send queue handler's add queue methods
-public class ReportQueueOrchestrator {
+// This class determines whether long ,and sending it to queue handlers
+public class ReportQueueManager {
 
     private final LongReportQueueHandler longReportQueueHandler;
     private final ShortReportQueueHandler shortReportQueueHandler;
 
-    public ReportQueueOrchestrator(LongReportQueueHandler longReportQueueHandler, ShortReportQueueHandler shortReportQueueHandler) {
+    public ReportQueueManager(LongReportQueueHandler longReportQueueHandler, ShortReportQueueHandler shortReportQueueHandler) {
         this.longReportQueueHandler = longReportQueueHandler;
         this.shortReportQueueHandler = shortReportQueueHandler;
         readDb();

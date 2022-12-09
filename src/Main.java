@@ -1,7 +1,7 @@
 import definition.ReportRequestProperties;
 import definition.SystemProperties;
 import queue.LongReportQueueHandler;
-import queue.ReportQueueOrchestrator;
+import queue.ReportQueueManager;
 import queue.ShortReportQueueHandler;
 
 import java.util.ArrayList;
@@ -16,8 +16,8 @@ public class Main {
     private static final ShortReportQueueHandler shortReportQueueHandler = new ShortReportQueueHandler(new SystemProperties());
     private static final LongReportQueueHandler longReportQueueHandler = new LongReportQueueHandler(new SystemProperties());
 
-    private static final ReportQueueOrchestrator reportQueueOrchestrator =
-            new ReportQueueOrchestrator(longReportQueueHandler, shortReportQueueHandler);
+    private static final ReportQueueManager REPORT_QUEUE_MANAGER =
+            new ReportQueueManager(longReportQueueHandler, shortReportQueueHandler);
 
     public static void main(String[] args) {
 
@@ -26,6 +26,8 @@ public class Main {
         TimerTask timerTask2 = new TimerTask() {
             @Override
             public void run() {
+                System.out.println("Current queue size: " + (shortReportQueueHandler.getQueueSize() + longReportQueueHandler.getQueueSize()));
+                System.out.println("Remaining capacity: " + (shortReportQueueHandler.getRemainingQueueCapacity() + longReportQueueHandler.getRemainingQueueCapacity()));
                 List<ReportRequestProperties> waitingRequests = shortReportQueueHandler.getWaitingReportRequests();
                 waitingRequests.addAll(longReportQueueHandler.getWaitingReportRequests());
                 System.out.println("Waiting Report Requests: " + waitingRequests);
@@ -33,7 +35,7 @@ public class Main {
         };
         timer2.scheduleAtFixedRate(timerTask2,10000, 10000);
 
-        List<ReportRequestProperties> reportRequestPropertiesList = generateReportRequests(20);
+        List<ReportRequestProperties> reportRequestPropertiesList = generateReportRequests(120);
         sendRequestsToCreateReportRequestOrchestrator(reportRequestPropertiesList);
 
         try {
@@ -60,7 +62,7 @@ public class Main {
                 reportRequestProperties = generateLongReportRequest();
             }
 
-            if (ReportQueueOrchestrator.isLongReportRequest(reportRequestProperties)) {
+            if (ReportQueueManager.isLongReportRequest(reportRequestProperties)) {
                 totalLong++;
             } else {
                 totalShort++;
@@ -94,7 +96,7 @@ public class Main {
 
     public static void sendRequestsToCreateReportRequestOrchestrator(List<ReportRequestProperties> reportRequestPropertiesList) {
         for (ReportRequestProperties reportRequestProperties : reportRequestPropertiesList) {
-            reportQueueOrchestrator.createReportRequest(reportRequestProperties);
+            REPORT_QUEUE_MANAGER.createReportRequest(reportRequestProperties);
         }
     }
 }

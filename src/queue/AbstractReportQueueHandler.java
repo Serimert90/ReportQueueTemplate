@@ -8,6 +8,7 @@ import reportgenerator.ReportGenerator;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -90,7 +91,7 @@ public abstract class AbstractReportQueueHandler {
         int maxParallelRunningThreadCount = getMaxParallelRunningSize(systemProperties);
         int maxQueueSize = getMaxQueueListSize(systemProperties);
         executorService = new ThreadPoolExecutor(maxParallelRunningThreadCount, maxParallelRunningThreadCount,
-                0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>(maxQueueSize));
+                0L, TimeUnit.MILLISECONDS, new ArrayBlockingQueue<>(maxQueueSize));
     }
 
     protected int getMaxParallelRunningSize(SystemProperties systemProperties) {
