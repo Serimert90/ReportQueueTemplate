@@ -2,10 +2,13 @@ import definition.ReportRequestProperties;
 import definition.SystemProperties;
 import queue.LongReportQueueHandler;
 import queue.ReportQueueOrchestrator;
-import queue.ReportQueueProcessScheduler;
 import queue.ShortReportQueueHandler;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.TimeUnit;
 
 public class Main {
@@ -15,26 +18,17 @@ public class Main {
 
     private static final ReportQueueOrchestrator reportQueueOrchestrator =
             new ReportQueueOrchestrator(longReportQueueHandler, shortReportQueueHandler);
-    private static final ReportQueueProcessScheduler reportQueueProcessScheduler =
-            new ReportQueueProcessScheduler(longReportQueueHandler, shortReportQueueHandler);
 
     public static void main(String[] args) {
-
-        // this part is simulating cron scheduled job 10 sec
-        Timer timer = new Timer();
-        TimerTask timerTask = new TimerTask() {
-            @Override
-            public void run() {
-                reportQueueProcessScheduler.doCronJob();
-            }
-        };
-        timer.scheduleAtFixedRate(timerTask,1, 10000);
 
         // this part is checking remaining not started queueList and finishing if all finished
         Timer timer2 = new Timer();
         TimerTask timerTask2 = new TimerTask() {
             @Override
             public void run() {
+                List<ReportRequestProperties> waitingRequests = shortReportQueueHandler.getWaitingReportRequests();
+                waitingRequests.addAll(longReportQueueHandler.getWaitingReportRequests());
+                System.out.println("Waiting Report Requests: " + waitingRequests);
             }
         };
         timer2.scheduleAtFixedRate(timerTask2,10000, 10000);

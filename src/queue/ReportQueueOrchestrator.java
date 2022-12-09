@@ -28,7 +28,7 @@ public class ReportQueueOrchestrator {
 
     // this is where we call when there is a new request
     public void createReportRequest(ReportRequestProperties reportRequestProperties) {
-        if(isLongReportRequest(reportRequestProperties)) {
+        if (isLongReportRequest(reportRequestProperties)) {
             longReportQueueHandler.addToQueue(reportRequestProperties);
         } else {
             shortReportQueueHandler.addToQueue(reportRequestProperties);

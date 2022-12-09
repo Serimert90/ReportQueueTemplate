@@ -30,7 +30,7 @@ public class SystemProperties {
         this.maxShortQueueParallelProcessingCount = maxShortQueueParallelProcessingCount;
     }
 
-    public int getMaxLongQueueProcessingCount() {
+    public int getMaxLongQueueParallelProcessingCount() {
         return maxLongQueueProcessingCount;
     }
 

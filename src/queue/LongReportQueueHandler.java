@@ -7,5 +7,4 @@ public class LongReportQueueHandler extends AbstractReportQueueHandler {
     public LongReportQueueHandler(SystemProperties systemProperties) {
         super(systemProperties);
     }
-
 }
