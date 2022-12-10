@@ -5,13 +5,13 @@ import definition.ReportRequestProperties;
 import java.util.ArrayList;
 import java.util.List;
 
-// This class determines whether long and send queue handler's add queue methods
-public class ReportQueueOrchestrator {
+// This class determines whether long ,and sending it to queue handlers
+public class ReportQueueManager {
 
     private final LongReportQueueHandler longReportQueueHandler;
     private final ShortReportQueueHandler shortReportQueueHandler;
 
-    public ReportQueueOrchestrator(LongReportQueueHandler longReportQueueHandler, ShortReportQueueHandler shortReportQueueHandler) {
+    public ReportQueueManager(LongReportQueueHandler longReportQueueHandler, ShortReportQueueHandler shortReportQueueHandler) {
         this.longReportQueueHandler = longReportQueueHandler;
         this.shortReportQueueHandler = shortReportQueueHandler;
         readDb();
@@ -28,17 +28,11 @@ public class ReportQueueOrchestrator {
 
     // this is where we call when there is a new request
     public void createReportRequest(ReportRequestProperties reportRequestProperties) {
-        if(isLongReportRequest(reportRequestProperties)) {
+        if (isLongReportRequest(reportRequestProperties)) {
             longReportQueueHandler.addToQueue(reportRequestProperties);
         } else {
             shortReportQueueHandler.addToQueue(reportRequestProperties);
         }
-    }
-
-    public List<ReportRequestProperties> getAllNotStartedReportRequestQueueList() {
-        List<ReportRequestProperties> reportRequestPropertiesList = longReportQueueHandler.getNotStartedReportRequestQueueList();
-        reportRequestPropertiesList.addAll(shortReportQueueHandler.getNotStartedReportRequestQueueList());
-        return  reportRequestPropertiesList;
     }
 
     //this is where we decide whether it is long or short, of course it is sample
