@@ -35,7 +35,15 @@ public class ReportRequestProperties {
     public ReportRequestProperties(long waitInTimeUnits, boolean waitTimeInSeconds) {
         this.waitInTimeUnits = waitInTimeUnits;
         this.waitTimeInSeconds = waitTimeInSeconds;
-        reportName =  waitTimeInSeconds + "_" + waitInTimeUnits + "_" + new Random().nextInt(100000);
+        reportName =  waitInTimeUnits + "_" + (waitTimeInSeconds ? "seconds" : "minutes") + "_" + new Random().nextInt(100000);
+    }
+
+    public ReportRequestProperties(ReportType reportType, long waitInTimeUnits, boolean waitTimeInSeconds) {
+        this.reportType = reportType;
+        this.waitInTimeUnits = waitInTimeUnits;
+        this.waitTimeInSeconds = waitTimeInSeconds;
+        reportName = reportType + "_" +  waitInTimeUnits + "_"
+                + (waitTimeInSeconds ? "seconds" : "minutes") + "_" + new Random().nextInt(100000);
     }
 
     public ReportRequestProperties(String startDate, String endDate, List<String> siteNames, ReportType reportType, long waitInTimeUnits) {
@@ -77,6 +85,7 @@ public class ReportRequestProperties {
     public void setReportType(ReportType reportType) {
         this.reportType = reportType;
     }
+
     public long getWaitInTimeUnits() {
         return waitInTimeUnits;
     }
@@ -94,7 +103,7 @@ public class ReportRequestProperties {
     }
 
     public ReportRequestProperties deepClone() {
-        return new ReportRequestProperties(this.waitInTimeUnits, this.waitTimeInSeconds);
+        return new ReportRequestProperties(this.reportType, this.waitInTimeUnits, this.waitTimeInSeconds);
     }
 
     @Override

@@ -2,111 +2,106 @@ package queue;
 
 import definition.ReportRequestProperties;
 import definition.SystemProperties;
-import utils.CsvUtils;
-import utils.DbUtils;
-import utils.LogUtils;
+import reportgenerator.EventReportGenerator;
+import reportgenerator.ObservationReportGenerator;
+import reportgenerator.ReportGenerator;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 public abstract class AbstractReportQueueHandler {
 
-    private final Queue<ReportRequestProperties> queueList = new ConcurrentLinkedQueue<>();
-    protected final AtomicInteger currentRunningCount = new AtomicInteger(0);
+    private ThreadPoolExecutor executorService;
+
     protected SystemProperties systemProperties;
 
     public AbstractReportQueueHandler(SystemProperties systemProperties) {
         this.systemProperties = systemProperties;
+        initThreadExecutor();
     }
 
     public void addToQueue(ReportRequestProperties reportRequestProperties) {
-        addManyToQueue(Collections.singletonList(reportRequestProperties));
+        executorService.submit(getRelatedReportGenerator(reportRequestProperties));
     }
 
     public void addManyToQueue(List<ReportRequestProperties> reportRequestPropertiesList) {
-        queueList.addAll(reportRequestPropertiesList);
-        processReportRequest();
+        List<ReportGenerator> reportGenerators = getRelatedReportGenerators(reportRequestPropertiesList);
+        reportGenerators.forEach( reportGenerator -> executorService.submit(reportGenerator));
     }
 
-    public ReportRequestProperties takeFromQueue() {
-        return queueList.poll();
-    }
-
-    public void removeFromQueue(ReportRequestProperties reportRequestProperties) {
-        queueList.remove(reportRequestProperties);
-    }
-
-    public void processReportRequest() {
-
-        //this below two ifs are just for logging and maintenance
-        if (queueList.isEmpty()) {
-            log("Queue list is empty");
-            return;
+    public List<ReportGenerator> getRelatedReportGenerators(List<ReportRequestProperties> reportRequestPropertiesList) {
+        List<ReportGenerator> reportGenerators = new ArrayList<>();
+        for (ReportRequestProperties reportRequestProperties : reportRequestPropertiesList) {
+            reportGenerators.add(getRelatedReportGenerator(reportRequestProperties));
         }
-
-        if (!haveAvailableThreadForProcessingReportRequest()) {
-            log("Not available thread, running all ");
-            return;
-        }
-
-        while (haveAvailableThreadForProcessingReportRequest() && !queueList.isEmpty()) {
-            ReportRequestProperties reportRequestProperties = takeFromQueue();
-            if (reportRequestProperties == null) { // in very rare cases this can be null (queue.poll()) so extra check
-                break;
-            }
-
-            currentRunningCount.incrementAndGet();
-            new Thread(() -> {
-                try {
-                    log("Started processing: " + reportRequestProperties);
-
-                    // assume DbUtils prefix methods updating cache too for convenience
-                    DbUtils.doJob(1, true); // update report request in progress
-                    DbUtils.doJob(reportRequestProperties.getWaitInTimeUnits(), reportRequestProperties.isWaitTimeInSeconds()); // get data from db for report
-                    CsvUtils.doCreateCsv(reportRequestProperties.isWaitTimeInSeconds() ? 1 : 5); // create csv
-                    DbUtils.doJob(1, true); // update report request completed progress
-                } catch (Exception e) {
-                    DbUtils.doJob(1, true); // update report request failed
-                } finally {
-                    currentRunningCount.decrementAndGet();
-                    processReportRequest();
-
-                    log("Finished processing: " + reportRequestProperties);
-                }
-            }).start();
-        }
+        return reportGenerators;
     }
 
-    //This method is just here to see which queue type handler is working for what report request
-    public void log(String message){
-        String allMessage;
-        if (this instanceof LongReportQueueHandler) {
-            allMessage = "LONG--> " + message;
+    public ReportGenerator getRelatedReportGenerator(ReportRequestProperties reportRequestProperties) {
+        if (reportRequestProperties.getReportType() == ReportRequestProperties.ReportType.OBSERVATION) {
+            return new ObservationReportGenerator(reportRequestProperties);
+        } else if(reportRequestProperties.getReportType() == ReportRequestProperties.ReportType.EVENT) {
+            return new EventReportGenerator(reportRequestProperties);
         } else {
-            allMessage = "SHORT--> " + message;
+            throw new RuntimeException("not defined");
         }
-        LogUtils.log(allMessage);
-    }
-
-    public int getInProgressReportRequestCount() {
-        return this.currentRunningCount.get();
-    }
-
-    public List<ReportRequestProperties> getNotStartedReportRequestQueueList() {
-        List<ReportRequestProperties> clonedReportRequestPropertiesList = new ArrayList<>();
-        for(ReportRequestProperties reportRequestProperties : queueList) {
-            clonedReportRequestPropertiesList.add(reportRequestProperties.deepClone());
-        }
-        return clonedReportRequestPropertiesList;
     }
 
     public void updateSystemProperties(SystemProperties systemProperties) {
         this.systemProperties = systemProperties;
+        executorService.shutdown();
     }
 
-    protected abstract boolean haveAvailableThreadForProcessingReportRequest();
+    public int getActiveThreadCount() {
+        return executorService.getActiveCount();
+    }
+
+    public int getQueueSize() {
+        return executorService.getQueue().size();
+    }
+
+    public long getTotalCompletedSize() {
+        return executorService.getCompletedTaskCount();
+    }
+
+    public int getRemainingQueueCapacity() {
+        return executorService.getQueue().remainingCapacity();
+    }
+
+    public List<ReportRequestProperties> getWaitingReportRequests() {
+        List<ReportRequestProperties> waitingReportRequestPropertiesList = new ArrayList<>();
+
+        BlockingQueue<Runnable> waitingReportGenerators = executorService.getQueue();
+        for (Runnable runnable : waitingReportGenerators) {
+            if (runnable instanceof ReportGenerator) {
+                waitingReportRequestPropertiesList.add(
+                        ((ReportGenerator)runnable).getReportRequestProperties().deepClone());
+            }
+        }
+
+        return waitingReportRequestPropertiesList;
+    }
+
+    protected void initThreadExecutor() {
+        int maxParallelRunningThreadCount = getMaxParallelRunningSize(systemProperties);
+        int maxQueueSize = getMaxQueueListSize(systemProperties);
+        executorService = new ThreadPoolExecutor(maxParallelRunningThreadCount, maxParallelRunningThreadCount,
+                0L, TimeUnit.MILLISECONDS, new ArrayBlockingQueue<>(maxQueueSize));
+    }
+
+    protected int getMaxParallelRunningSize(SystemProperties systemProperties) {
+        return (this instanceof ShortReportQueueHandler)
+                ? systemProperties.getMaxShortQueueParallelProcessingCount()
+                : systemProperties.getMaxLongQueueParallelProcessingCount();
+    }
+
+    protected int getMaxQueueListSize(SystemProperties systemProperties) {
+        return (this instanceof ShortReportQueueHandler)
+                ? systemProperties.getMaxShortQueueListSize()
+                : systemProperties.getMaxLongQueueListSize();
+    }
 }
