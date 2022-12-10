@@ -15,22 +15,22 @@ public class ReportQueueManager {
 
     public ReportQueueManager(SystemProperties systemProperties) {
         this.systemProperties = systemProperties;
-        this.longReportQueueHandler = new LongReportQueueHandler(systemProperties);
         this.shortReportQueueHandler = new ShortReportQueueHandler(systemProperties);
+        this.longReportQueueHandler = new LongReportQueueHandler(systemProperties);
         readDb();
         createReportRequests(new ArrayList<>());
     }
     public void readDb(){}
-    public void createReportRequests(List<ReportRequestParams> reportRequestParamsList) {
-        for(ReportRequestParams reportRequestParams : reportRequestParamsList) {
-            createReportRequest(reportRequestParams);
-        }
-    }
     public void createReportRequest(ReportRequestParams reportRequestParams) {
         if (isLongReportRequest(reportRequestParams)) {
             longReportQueueHandler.addToQueue(reportRequestParams);
         } else {
             shortReportQueueHandler.addToQueue(reportRequestParams);
+        }
+    }
+    public void createReportRequests(List<ReportRequestParams> reportRequestParamsList) {
+        for(ReportRequestParams reportRequestParams : reportRequestParamsList) {
+            createReportRequest(reportRequestParams);
         }
     }
     public static boolean isLongReportRequest(ReportRequestParams reportRequestParams) {
