@@ -4,7 +4,7 @@ import definition.ReportRequestParams;
 import definition.SystemProperties;
 import reportgenerator.EventReportGenerator;
 import reportgenerator.ObservationReportGenerator;
-import reportgenerator.ReportGenerator;
+import reportgenerator.AbstractReportGenerator;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,24 +28,21 @@ public abstract class AbstractReportQueueHandler {
         executorService.setCorePoolSize(maxParallelThreadSize);
         executorService.setMaximumPoolSize(maxParallelThreadSize);
     }
-
     void addToQueue(ReportRequestParams reportRequestParams) {
         executorService.submit(getRelatedReportGenerator(reportRequestParams));
     }
-
     void addManyToQueue(List<ReportRequestParams> reportRequestParamsList) {
-        List<ReportGenerator> reportGenerators = getRelatedReportGenerators(reportRequestParamsList);
-        reportGenerators.forEach( reportGenerator -> executorService.submit(reportGenerator));
+        List<AbstractReportGenerator> abstractReportGenerators = getRelatedReportGenerators(reportRequestParamsList);
+        abstractReportGenerators.forEach(abstractReportGenerator -> executorService.submit(abstractReportGenerator));
     }
-
-    List<ReportGenerator> getRelatedReportGenerators(List<ReportRequestParams> reportRequestParamsList) {
-        List<ReportGenerator> reportGenerators = new ArrayList<>();
+    List<AbstractReportGenerator> getRelatedReportGenerators(List<ReportRequestParams> reportRequestParamsList) {
+        List<AbstractReportGenerator> abstractReportGenerators = new ArrayList<>();
         for (ReportRequestParams reportRequestParams : reportRequestParamsList) {
-            reportGenerators.add(getRelatedReportGenerator(reportRequestParams));
+            abstractReportGenerators.add(getRelatedReportGenerator(reportRequestParams));
         }
-        return reportGenerators;
+        return abstractReportGenerators;
     }
-    ReportGenerator getRelatedReportGenerator(ReportRequestParams reportRequestParams) {
+    AbstractReportGenerator getRelatedReportGenerator(ReportRequestParams reportRequestParams) {
         if (reportRequestParams.getReportType() == ReportRequestParams.ReportType.OBSERVATION) {
             return new ObservationReportGenerator(reportRequestParams);
         } else if(reportRequestParams.getReportType() == ReportRequestParams.ReportType.EVENT) {
@@ -57,24 +54,20 @@ public abstract class AbstractReportQueueHandler {
     protected int getQueueSize() {
         return executorService.getQueue().size();
     }
-
     protected int getRemainingQueueCapacity() {
         return executorService.getQueue().remainingCapacity();
     }
-
     protected void initThreadExecutor() {
         int maxParallelRunningThreadCount = getMaxParallelRunningSize(systemProperties);
         int maxQueueSize = getMaxQueueListSize(systemProperties);
         executorService = new ThreadPoolExecutor(maxParallelRunningThreadCount, maxParallelRunningThreadCount,
                 0L, TimeUnit.MILLISECONDS, new ArrayBlockingQueue<>(maxQueueSize));
     }
-
     protected int getMaxParallelRunningSize(SystemProperties systemProperties) {
         return (this instanceof ShortReportQueueHandler)
                 ? systemProperties.getMaxShortQueueParallelProcessingCount()
                 : systemProperties.getMaxLongQueueParallelProcessingCount();
     }
-
     protected int getMaxQueueListSize(SystemProperties systemProperties) {
         return (this instanceof ShortReportQueueHandler)
                 ? systemProperties.getMaxShortQueueListSize()

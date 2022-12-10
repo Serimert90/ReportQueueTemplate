@@ -5,7 +5,7 @@ import utils.CsvUtils;
 import utils.DbUtils;
 import utils.LogUtils;
 
-public class ObservationReportGenerator extends ReportGenerator {
+public class ObservationReportGenerator extends AbstractReportGenerator {
 
     public ObservationReportGenerator(ReportRequestParams reportRequestParams) {
         super(reportRequestParams);

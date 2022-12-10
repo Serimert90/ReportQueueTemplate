@@ -3,12 +3,12 @@ package reportgenerator;
 import definition.ReportRequestParams;
 import queue.ReportQueueManager;
 
-public abstract class ReportGenerator implements Runnable {
+public abstract class AbstractReportGenerator implements Runnable {
 
     protected ReportRequestParams reportRequestParams;
     protected String threadName;
 
-    public ReportGenerator(ReportRequestParams reportRequestParams) {
+    public AbstractReportGenerator(ReportRequestParams reportRequestParams) {
         this.reportRequestParams = reportRequestParams;
         setThreadName();
     }

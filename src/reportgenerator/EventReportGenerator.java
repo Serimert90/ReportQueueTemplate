@@ -5,7 +5,7 @@ import utils.CsvUtils;
 import utils.DbUtils;
 import utils.LogUtils;
 
-public class EventReportGenerator extends ReportGenerator {
+public class EventReportGenerator extends AbstractReportGenerator {
 
     public EventReportGenerator(ReportRequestParams reportRequestParams) {
         super(reportRequestParams);
