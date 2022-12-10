@@ -1,25 +1,20 @@
 package reportgenerator;
 
-import definition.ReportRequestProperties;
+import definition.ReportRequestParams;
 import queue.ReportQueueManager;
 
 public abstract class ReportGenerator implements Runnable {
 
-    protected ReportRequestProperties reportRequestProperties;
+    protected ReportRequestParams reportRequestParams;
     protected String threadName;
 
-    public ReportGenerator(ReportRequestProperties reportRequestProperties) {
-        this.reportRequestProperties = reportRequestProperties;
+    public ReportGenerator(ReportRequestParams reportRequestParams) {
+        this.reportRequestParams = reportRequestParams;
         setThreadName();
     }
-
-    // All db , csv related stuff will be done here (maybe not common ones)
-    public abstract void generateReport();
-
-    public ReportRequestProperties getReportRequestProperties() {
-        return this.reportRequestProperties;
+    public ReportRequestParams getReportRequestParams() {
+        return this.reportRequestParams;
     }
-
     @Override
     public void run() {
         try {
@@ -30,10 +25,12 @@ public abstract class ReportGenerator implements Runnable {
 
         }
     }
-
     private void setThreadName() {
-        String shortnessValue = ReportQueueManager.isLongReportRequest(reportRequestProperties) ? "(LONG)" : "(SHORT)";
-        threadName = this.getClass().getSimpleName() + shortnessValue + " - " + reportRequestProperties.toString();
+        String shortnessValue = ReportQueueManager.isLongReportRequest(reportRequestParams) ? "(LONG)" : "(SHORT)";
+        threadName = this.getClass().getSimpleName() + shortnessValue + " - " + reportRequestParams.toString();
         Thread.currentThread().setName(threadName);
     }
+
+    // All db , csv related stuff will be done here (maybe not common ones)
+    public abstract void generateReport();
 }

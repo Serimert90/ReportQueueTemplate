@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-public class ReportRequestProperties {
+public class ReportRequestParams {
 
     public enum ReportType {
         OBSERVATION("OBSERVATION"),
@@ -30,15 +30,15 @@ public class ReportRequestProperties {
     private boolean waitTimeInSeconds = true;
     private String reportName;
 
-    public ReportRequestProperties() {}
+    public ReportRequestParams() {}
 
-    public ReportRequestProperties(long waitInTimeUnits, boolean waitTimeInSeconds) {
+    public ReportRequestParams(long waitInTimeUnits, boolean waitTimeInSeconds) {
         this.waitInTimeUnits = waitInTimeUnits;
         this.waitTimeInSeconds = waitTimeInSeconds;
         reportName =  waitInTimeUnits + "_" + (waitTimeInSeconds ? "seconds" : "minutes") + "_" + new Random().nextInt(100000);
     }
 
-    public ReportRequestProperties(ReportType reportType, long waitInTimeUnits, boolean waitTimeInSeconds) {
+    public ReportRequestParams(ReportType reportType, long waitInTimeUnits, boolean waitTimeInSeconds) {
         this.reportType = reportType;
         this.waitInTimeUnits = waitInTimeUnits;
         this.waitTimeInSeconds = waitTimeInSeconds;
@@ -46,7 +46,7 @@ public class ReportRequestProperties {
                 + (waitTimeInSeconds ? "seconds" : "minutes") + "_" + new Random().nextInt(100000);
     }
 
-    public ReportRequestProperties(String startDate, String endDate, List<String> siteNames, ReportType reportType, long waitInTimeUnits) {
+    public ReportRequestParams(String startDate, String endDate, List<String> siteNames, ReportType reportType, long waitInTimeUnits) {
         this.startDate = startDate;
         this.endDate = endDate;
         this.siteNames = siteNames;
@@ -102,8 +102,8 @@ public class ReportRequestProperties {
         this.waitTimeInSeconds = waitTimeInSeconds;
     }
 
-    public ReportRequestProperties deepClone() {
-        return new ReportRequestProperties(this.reportType, this.waitInTimeUnits, this.waitTimeInSeconds);
+    public ReportRequestParams deepClone() {
+        return new ReportRequestParams(this.reportType, this.waitInTimeUnits, this.waitTimeInSeconds);
     }
 
     @Override

@@ -1,8 +1,6 @@
-import definition.ReportRequestProperties;
+import definition.ReportRequestParams;
 import definition.SystemProperties;
-import queue.LongReportQueueHandler;
 import queue.ReportQueueManager;
-import queue.ShortReportQueueHandler;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -13,11 +11,8 @@ import java.util.concurrent.TimeUnit;
 
 public class Main {
 
-    private static final ShortReportQueueHandler shortReportQueueHandler = new ShortReportQueueHandler(new SystemProperties());
-    private static final LongReportQueueHandler longReportQueueHandler = new LongReportQueueHandler(new SystemProperties());
-
-    private static final ReportQueueManager REPORT_QUEUE_MANAGER =
-            new ReportQueueManager(longReportQueueHandler, shortReportQueueHandler);
+    private static final ReportQueueManager reportQueueManager =
+            new ReportQueueManager(new SystemProperties());
 
     public static void main(String[] args) {
 
@@ -26,77 +21,74 @@ public class Main {
         TimerTask timerTask2 = new TimerTask() {
             @Override
             public void run() {
-                System.out.println("Current queue size: " + (shortReportQueueHandler.getQueueSize() + longReportQueueHandler.getQueueSize()));
-                System.out.println("Remaining capacity: " + (shortReportQueueHandler.getRemainingQueueCapacity() + longReportQueueHandler.getRemainingQueueCapacity()));
-                List<ReportRequestProperties> waitingRequests = shortReportQueueHandler.getWaitingReportRequests();
-                waitingRequests.addAll(longReportQueueHandler.getWaitingReportRequests());
-                System.out.println("Waiting Report Requests: " + waitingRequests);
+                System.out.println("Current queue size: " + reportQueueManager.getTotalWaitingQueueSize());
+                System.out.println("Remaining capacity: " + reportQueueManager.getTotalRemainingQueueCapacity());
             }
         };
         timer2.scheduleAtFixedRate(timerTask2,10000, 10000);
 
-        List<ReportRequestProperties> reportRequestPropertiesList = generateReportRequests(120);
-        sendRequestsToCreateReportRequestOrchestrator(reportRequestPropertiesList);
+        List<ReportRequestParams> reportRequestParamsList = generateReportRequests(120);
+        sendRequestsToCreateReportRequestOrchestrator(reportRequestParamsList);
 
         try {
             TimeUnit.SECONDS.sleep(50);
-            reportRequestPropertiesList = generateReportRequests(5);
-            sendRequestsToCreateReportRequestOrchestrator(reportRequestPropertiesList);
+            reportRequestParamsList = generateReportRequests(5);
+            sendRequestsToCreateReportRequestOrchestrator(reportRequestParamsList);
         } catch (InterruptedException ignored) {}
     }
 
-    public static List<ReportRequestProperties> generateReportRequests(int count) {
+    public static List<ReportRequestParams> generateReportRequests(int count) {
         Random randomGenerator = new Random();
-        List<ReportRequestProperties> reportRequestPropertiesList = new ArrayList<>();
+        List<ReportRequestParams> reportRequestParamsList = new ArrayList<>();
 
         int totalLong = 0;
         int totalShort = 0;
-        while (reportRequestPropertiesList.size() < count) {
-            ReportRequestProperties reportRequestProperties;
+        while (reportRequestParamsList.size() < count) {
+            ReportRequestParams reportRequestParams;
 
             // below part is for randomly deciding short or long
             boolean shortRequest = randomGenerator.nextBoolean();
             if (shortRequest) {
-                reportRequestProperties = generateShortReportRequest();
+                reportRequestParams = generateShortReportRequest();
             } else {
-                reportRequestProperties = generateLongReportRequest();
+                reportRequestParams = generateLongReportRequest();
             }
 
-            if (ReportQueueManager.isLongReportRequest(reportRequestProperties)) {
+            if (ReportQueueManager.isLongReportRequest(reportRequestParams)) {
                 totalLong++;
             } else {
                 totalShort++;
             }
-            System.out.println("Generated Report Request: " + reportRequestProperties);
-            reportRequestPropertiesList.add(reportRequestProperties);
+            System.out.println("Generated Report Request: " + reportRequestParams);
+            reportRequestParamsList.add(reportRequestParams);
         }
         System.out.println("Total: "+ (totalLong + totalShort) + " - Total Long: "+ totalLong + " - Total Short: " + totalShort);
-        return reportRequestPropertiesList;
+        return reportRequestParamsList;
     }
 
-    private static ReportRequestProperties generateShortReportRequest() {
+    private static ReportRequestParams generateShortReportRequest() {
         Random randomGenerator = new Random();
         // 30 seconds or less
         long waitInTimeUnits = randomGenerator.nextInt(30) + 1;
-        ReportRequestProperties.ReportType reportType = randomGenerator.nextInt(10) < 5
-                ? ReportRequestProperties.ReportType.OBSERVATION
-                : ReportRequestProperties.ReportType.EVENT;
-        return new ReportRequestProperties(reportType, waitInTimeUnits, true);
+        ReportRequestParams.ReportType reportType = randomGenerator.nextInt(10) < 5
+                ? ReportRequestParams.ReportType.OBSERVATION
+                : ReportRequestParams.ReportType.EVENT;
+        return new ReportRequestParams(reportType, waitInTimeUnits, true);
     }
 
-    private static ReportRequestProperties generateLongReportRequest() {
+    private static ReportRequestParams generateLongReportRequest() {
         Random randomGenerator = new Random();
         // 5 minutes or less
         long waitInTimeUnits = randomGenerator.nextInt(3) + 1;
-        ReportRequestProperties.ReportType reportType = randomGenerator.nextInt(10) < 5
-                ? ReportRequestProperties.ReportType.OBSERVATION
-                : ReportRequestProperties.ReportType.EVENT;
-        return new ReportRequestProperties(reportType, waitInTimeUnits, false);
+        ReportRequestParams.ReportType reportType = randomGenerator.nextInt(10) < 5
+                ? ReportRequestParams.ReportType.OBSERVATION
+                : ReportRequestParams.ReportType.EVENT;
+        return new ReportRequestParams(reportType, waitInTimeUnits, false);
     }
 
-    public static void sendRequestsToCreateReportRequestOrchestrator(List<ReportRequestProperties> reportRequestPropertiesList) {
-        for (ReportRequestProperties reportRequestProperties : reportRequestPropertiesList) {
-            REPORT_QUEUE_MANAGER.createReportRequest(reportRequestProperties);
+    public static void sendRequestsToCreateReportRequestOrchestrator(List<ReportRequestParams> reportRequestParamsList) {
+        for (ReportRequestParams reportRequestParams : reportRequestParamsList) {
+            reportQueueManager.createReportRequest(reportRequestParams);
         }
     }
 }

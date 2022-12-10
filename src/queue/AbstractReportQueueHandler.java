@@ -1,6 +1,6 @@
 package queue;
 
-import definition.ReportRequestProperties;
+import definition.ReportRequestParams;
 import definition.SystemProperties;
 import reportgenerator.EventReportGenerator;
 import reportgenerator.ObservationReportGenerator;
@@ -9,81 +9,57 @@ import reportgenerator.ReportGenerator;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 public abstract class AbstractReportQueueHandler {
-
     private ThreadPoolExecutor executorService;
 
     protected SystemProperties systemProperties;
 
-    public AbstractReportQueueHandler(SystemProperties systemProperties) {
+    AbstractReportQueueHandler(SystemProperties systemProperties) {
         this.systemProperties = systemProperties;
         initThreadExecutor();
     }
+    void updateSystemProperties(SystemProperties systemProperties) {
+        this.systemProperties = systemProperties;
 
-    public void addToQueue(ReportRequestProperties reportRequestProperties) {
-        executorService.submit(getRelatedReportGenerator(reportRequestProperties));
+        int maxParallelThreadSize = getMaxParallelRunningSize(systemProperties);
+        executorService.setCorePoolSize(maxParallelThreadSize);
+        executorService.setMaximumPoolSize(maxParallelThreadSize);
     }
 
-    public void addManyToQueue(List<ReportRequestProperties> reportRequestPropertiesList) {
-        List<ReportGenerator> reportGenerators = getRelatedReportGenerators(reportRequestPropertiesList);
+    void addToQueue(ReportRequestParams reportRequestParams) {
+        executorService.submit(getRelatedReportGenerator(reportRequestParams));
+    }
+
+    void addManyToQueue(List<ReportRequestParams> reportRequestParamsList) {
+        List<ReportGenerator> reportGenerators = getRelatedReportGenerators(reportRequestParamsList);
         reportGenerators.forEach( reportGenerator -> executorService.submit(reportGenerator));
     }
 
-    public List<ReportGenerator> getRelatedReportGenerators(List<ReportRequestProperties> reportRequestPropertiesList) {
+    List<ReportGenerator> getRelatedReportGenerators(List<ReportRequestParams> reportRequestParamsList) {
         List<ReportGenerator> reportGenerators = new ArrayList<>();
-        for (ReportRequestProperties reportRequestProperties : reportRequestPropertiesList) {
-            reportGenerators.add(getRelatedReportGenerator(reportRequestProperties));
+        for (ReportRequestParams reportRequestParams : reportRequestParamsList) {
+            reportGenerators.add(getRelatedReportGenerator(reportRequestParams));
         }
         return reportGenerators;
     }
-
-    public ReportGenerator getRelatedReportGenerator(ReportRequestProperties reportRequestProperties) {
-        if (reportRequestProperties.getReportType() == ReportRequestProperties.ReportType.OBSERVATION) {
-            return new ObservationReportGenerator(reportRequestProperties);
-        } else if(reportRequestProperties.getReportType() == ReportRequestProperties.ReportType.EVENT) {
-            return new EventReportGenerator(reportRequestProperties);
+    ReportGenerator getRelatedReportGenerator(ReportRequestParams reportRequestParams) {
+        if (reportRequestParams.getReportType() == ReportRequestParams.ReportType.OBSERVATION) {
+            return new ObservationReportGenerator(reportRequestParams);
+        } else if(reportRequestParams.getReportType() == ReportRequestParams.ReportType.EVENT) {
+            return new EventReportGenerator(reportRequestParams);
         } else {
             throw new RuntimeException("not defined");
         }
     }
-
-    public void updateSystemProperties(SystemProperties systemProperties) {
-        this.systemProperties = systemProperties;
-        executorService.shutdown();
-    }
-
-    public int getActiveThreadCount() {
-        return executorService.getActiveCount();
-    }
-
-    public int getQueueSize() {
+    protected int getQueueSize() {
         return executorService.getQueue().size();
     }
 
-    public long getTotalCompletedSize() {
-        return executorService.getCompletedTaskCount();
-    }
-
-    public int getRemainingQueueCapacity() {
+    protected int getRemainingQueueCapacity() {
         return executorService.getQueue().remainingCapacity();
-    }
-
-    public List<ReportRequestProperties> getWaitingReportRequests() {
-        List<ReportRequestProperties> waitingReportRequestPropertiesList = new ArrayList<>();
-
-        BlockingQueue<Runnable> waitingReportGenerators = executorService.getQueue();
-        for (Runnable runnable : waitingReportGenerators) {
-            if (runnable instanceof ReportGenerator) {
-                waitingReportRequestPropertiesList.add(
-                        ((ReportGenerator)runnable).getReportRequestProperties().deepClone());
-            }
-        }
-
-        return waitingReportRequestPropertiesList;
     }
 
     protected void initThreadExecutor() {
